@@ -56,7 +56,9 @@ module Instances.TH.Lift
   ) where
 
 import Language.Haskell.TH.Syntax (Lift(..))
-#if MIN_VERSION_template_haskell(2,16,0)
+#if MIN_VERSION_template_haskell(2,17,0)
+-- nothing
+#elif MIN_VERSION_template_haskell(2,16,0)
 import Language.Haskell.TH.Syntax (unsafeTExpCoerce)
 #endif
 import Language.Haskell.TH
@@ -130,7 +132,29 @@ import qualified Data.Vector.Unboxed as Vector.Unboxed
 import Control.Applicative (Const (..))
 import Data.Functor.Identity (Identity (..))
 
-#if MIN_VERSION_template_haskell(2,16,0)
+#if MIN_VERSION_template_haskell(2,17,0)
+import qualified Control.Monad.Trans.Accum         as Trans
+import qualified Control.Monad.Trans.Class         as Trans
+import qualified Control.Monad.Trans.Cont          as Trans
+import qualified Control.Monad.Trans.Except        as Trans
+import qualified Control.Monad.Trans.Identity      as Trans
+import qualified Control.Monad.Trans.Maybe         as Trans
+import qualified Control.Monad.Trans.Reader        as Trans
+import qualified Control.Monad.Trans.RWS.CPS       as TransC
+import qualified Control.Monad.Trans.RWS.Lazy      as Trans
+import qualified Control.Monad.Trans.RWS.Strict    as TransS
+import qualified Control.Monad.Trans.Select        as Trans
+import qualified Control.Monad.Trans.State.Lazy    as Trans
+import qualified Control.Monad.Trans.State.Strict  as TransS
+import qualified Control.Monad.Trans.Writer.CPS    as TransC
+import qualified Control.Monad.Trans.Writer.Lazy   as Trans
+import qualified Control.Monad.Trans.Writer.Strict as TransS
+
+#endif
+
+#if MIN_VERSION_template_haskell(2,17,0)
+#define LIFT_TYPED_DEFAULT liftTyped = unsafeCodeCoerce . lift
+#elif MIN_VERSION_template_haskell(2,16,0)
 #define LIFT_TYPED_DEFAULT liftTyped = unsafeTExpCoerce . lift
 #else
 #define LIFT_TYPED_DEFAULT
@@ -322,4 +346,23 @@ instance Lift a => Lift (Identity a) where
 
 instance Lift a => Lift (Const a b) where
   lift (Const a) = [| Const a |]
+#endif
+
+#if MIN_VERSION_template_haskell(2,17,0)
+-- Quote instances
+instance (Quote m, Monoid w) => Quote (Trans.AccumT w m)    where newName = Trans.lift . newName
+instance Quote m             => Quote (Trans.ContT r m)     where newName = Trans.lift . newName
+instance Quote m             => Quote (Trans.ExceptT e m)   where newName = Trans.lift . newName
+instance Quote m             => Quote (Trans.IdentityT m)   where newName = Trans.lift . newName
+instance Quote m             => Quote (Trans.MaybeT m)      where newName = Trans.lift . newName
+instance Quote m             => Quote (Trans.ReaderT r m)   where newName = Trans.lift . newName
+instance Quote m             => Quote (Trans.SelectT r m)   where newName = Trans.lift . newName
+instance Quote m             => Quote (Trans.StateT s m)    where newName = Trans.lift . newName
+instance Quote m             => Quote (TransS.StateT s m)   where newName = Trans.lift . newName
+instance (Quote m, Monoid w) => Quote (Trans.RWST r w s m)  where newName = Trans.lift . newName
+instance (Quote m, Monoid w) => Quote (TransC.RWST r w s m) where newName = Trans.lift . newName
+instance (Quote m, Monoid w) => Quote (TransS.RWST r w s m) where newName = Trans.lift . newName
+instance (Quote m, Monoid w) => Quote (Trans.WriterT w m)   where newName = Trans.lift . newName
+instance (Quote m, Monoid w) => Quote (TransC.WriterT w m)  where newName = Trans.lift . newName
+instance (Quote m, Monoid w) => Quote (TransS.WriterT w m)  where newName = Trans.lift . newName
 #endif
